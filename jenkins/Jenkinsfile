@@ -1,0 +1,50 @@
+pippipeline {
+       agent any
+
+       tools {
+           maven "M3"
+       }
+
+       stages {
+           stage('Clone and Fetch') {
+               steps {
+                   checkout([$class: 'GitSCM', branches: [[name: 'main']], userRemoteConfigs: [[url: 'https://github.com/joadguer/TareaCI.git']]])
+               }
+           }
+
+           stage('Compile Application') {
+               steps {
+                   script {
+                       bat 'mvn clean compile'
+                   }
+               }
+           }
+
+           stage('Execute Application') {
+               steps {
+                   script {
+                       bat 'mvn test'
+                   }
+               }
+           }
+       }
+
+       post {
+           always {
+               script {
+                   // Genera el informe de Allure
+                   bat 'allure generate target/allure-results -o target/allure-report'
+               }
+               allure([
+                   includeProperties: false,
+                   jdk: '',
+                   properties: [],
+                   report: [
+                       path: 'target/allure-report'
+                   ],
+                   // Configuración de la política de generación del informe
+                   reportBuildPolicy: 'ALWAYS'
+               ])
+           }
+       }
+   }
